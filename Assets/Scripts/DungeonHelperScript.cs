@@ -413,7 +413,7 @@ public class DungeonHelperScript : MonoBehaviour {
     }
 
     //returns closest room that is not yet connected
-    public int ClosestRoom(List<List<int>> roomList, int index, int squareSize)
+    public int ClosestRoom(List<List<int>> roomList, int index, int squareSize, List<int> ConnectedRooms)
     {
         int centerQuad = roomList[index][0];
         int roomXSize = roomList[index][1];
@@ -425,14 +425,26 @@ public class DungeonHelperScript : MonoBehaviour {
         for (int i = 0; i < roomList.Count; i++)
         {
             int centerQuadOther = roomList[i][0];
-            int vertDist = (centerQuad - centerQuadOther) / squareSize;
+            int vertDist = Mathf.RoundToInt(((float)centerQuad - (float)centerQuadOther) / (float)squareSize);
+
+            //to find horizontal distance, adjust centerQuadOther to be on same line as centerQuad
+            if (vertDist > 0)
+            {
+                //centerQuadOther is BELOW, so move it up
+                centerQuadOther = centerQuadOther + (vertDist * squareSize);
+            }
+            else if (vertDist < 0)
+            {
+                //centerQuadOther is ABOVE, so move it down
+                centerQuadOther = centerQuadOther - (-vertDist * squareSize);
+            }
+
             int horDist = centerQuad - centerQuadOther;
+
             float distance = HypotenuseDist(vertDist, horDist);
-            Debug.Log("distance: " + distance);
             roomDistList.Add(distance);
-            //minIndex = IndexAtMin(roomDistList);
         }
-        minIndex = IndexAtMin(roomDistList);
+        minIndex = IndexAtMin(roomDistList, index, ConnectedRooms);
         return minIndex;
     }
 
@@ -445,39 +457,36 @@ public class DungeonHelperScript : MonoBehaviour {
     }
 
     //returns index at minimum ABSOLUTE value
-    public int IndexAtMin(List<float> roomDistList)
+    public int IndexAtMin(List<float> roomDistList, int indexAtStartRoom, List<int> ConnectedRooms)
     {
         float minValue = 2501;
         int minIndex = -1;
         int index = -1;
-
+        
         foreach (float num in roomDistList)
         {
-            index++;
+            index++;         
 
-            if (num < 0)
+            if (!ConnectedRooms.Contains(index))
             {
-                float numsub = num * -1;
-
-                if (numsub <= minValue)
+                if (num < 0)
                 {
-                    Debug.Log("negative");
-                    minIndex = index;
-                    minValue = numsub;
-                    Debug.Log("minIndex: " + minIndex);
-                    Debug.Log("minValue: " + minValue);
+                    float numsub = num * -1;
+
+                    if (numsub <= minValue)
+                    {
+                        minIndex = index;
+                        minValue = numsub;
+                    }
                 }
-            }
 
-            else if (num > 0)
-            {
-                if (num <= minValue)
+                else if (num > 0)
                 {
-                    //Debug.Log("positive");
-                    minIndex = index;
-                    minValue = num;
-                    //Debug.Log("minIndex: " + minIndex);
-                    //Debug.Log("minValue: " + minValue);
+                    if (num <= minValue)
+                    {
+                        minIndex = index;
+                        minValue = num;
+                    }
                 }
             }
         }
@@ -485,21 +494,158 @@ public class DungeonHelperScript : MonoBehaviour {
         return minIndex;    
     }
 
-    public void CreatePathAlt(List<List<int>> roomList, int index, int squareSize, Vector2[] uv, Dictionary<int, string> dunDict)
+    public void CreatePathAlt(List<List<int>> roomList, int startRoomIndex, int endRoomIndex, int squareSize, Vector2[] uv, Dictionary<int, string> dunDict)
     {
-        int centerQuad = roomList[index][0];
-        int roomXSize = roomList[index][1];
-        int roomYSize = roomList[index][2];
+        //starting room info
+        int centerQuadSt = roomList[startRoomIndex][0];
+        int roomXSizeSt = roomList[startRoomIndex][1];
+        int roomYSizeSt = roomList[startRoomIndex][2];
 
-        //important ints
-        int xfactor = roomXSize / 2;
-        int yPrefactor = roomYSize / 2;
-        int yfactor = yPrefactor * squareSize;
-        int lowBound = (centerQuad - xfactor) - yfactor;
-        string value = "";
+        int xfactorSt = roomXSizeSt / 2;
+        int yPrefactorSt = roomYSizeSt / 2;
+        int yfactorSt = yPrefactorSt * squareSize;
+        int lowBoundSt = (centerQuadSt - xfactorSt) - yfactorSt;
 
-        //*******************************
-        TileType(centerQuad, 0, 1, uv, dunDict);
+        //ending room info
+        int centerQuadEnd = roomList[endRoomIndex][0];
+        int centerQuadEndAdjustment = centerQuadEnd;
+        int roomXSizeEnd = roomList[endRoomIndex][1];
+        int roomYSizeEnd = roomList[endRoomIndex][2];
+
+        int xfactorEnd = roomXSizeEnd / 2;
+        int yPrefactorEnd = roomYSizeEnd / 2;
+        int yfactorEnd = yPrefactorEnd * squareSize;
+        int lowBoundEnd = (centerQuadEnd - xfactorEnd) - yfactorEnd;
+
+        int vertDist = Mathf.RoundToInt(((float)centerQuadSt - (float)centerQuadEnd) / (float)squareSize);
+
+        //if absolute value of last 2 digits of cQSt - last 2 digits of cQEnd is > 25, then if negative subtract 1 from vertDist (so it's like having rounded down) and if positive add 1 to vertDist
+        float last2St = centerQuadSt % 100;
+        float last2End = centerQuadEnd % 100;
+        int differenceint = (int)(last2St - last2End);
+        float difference  = (float)differenceint;
+        Debug.Log("ST: " + last2St);
+        Debug.Log("End: " + last2End);
+        Debug.Log("int dif: " + differenceint);
+        Debug.Log("difference: " + difference);
+        Debug.Log("absolute: " + Mathf.Abs(difference));
+
+        if (Mathf.Abs(difference) < 49)
+        {
+            if (((last2St > 0 && last2St < 50) && (last2End > 0 && last2End < 50)) || ((last2St > 50 && last2St < 99) && (last2End > 50 && last2End < 99)))
+            {
+                if (difference > 25)
+                {
+                    if (((last2St > 0 && last2St < 50) && (last2End > 0 && last2End < 50)) || ((last2St > 50 && last2St < 99) && (last2End > 50 && last2End < 99)))
+                    {
+                            vertDist -= 1;   
+                    }
+                }
+
+                else if (difference < -25)
+                {
+                        vertDist += 1;
+                }
+            }
+            //different types of rows
+            else if (((last2St > 0 && last2St < 50) && (last2End > 50 && last2End < 99)) || ((last2St > 50 && last2St < 99) && (last2End > 0 && last2End < 50)))
+            {
+                if (difference > 0 && difference <= 25)
+                {
+                    vertDist += 1;
+                }
+                if (difference < 0 && difference >= -25)
+                {
+                    vertDist -= 1;
+                }
+            }
+        }
+
+        else if (Mathf.Abs(difference) > 49)
+        {
+            if (((last2St > 0 && last2St < 50) && (last2End > 50 && last2End < 99)) || ((last2St > 50 && last2St < 99) && (last2End > 0 && last2End < 50)))
+            {
+                if (difference >= 75)
+                {
+                    vertDist -= 1;
+                }
+                else if (difference <= -75)
+                {
+                    vertDist += 1;   
+                }
+            }
+        }
+
+        //to find horizontal distance, adjust centerQuadEnd to be on same line as centerQuad
+        if (vertDist > 0)
+        {
+            //centerQuadEnd is BELOW, so move it up
+            centerQuadEndAdjustment = centerQuadEnd + (vertDist * squareSize);
+        }
+        else if (vertDist < 0)
+        {
+            //centerQuadEnd is ABOVE, so move it down
+            centerQuadEndAdjustment = centerQuadEnd - (-vertDist * (squareSize));
+        }
+
+        int horDist = centerQuadSt - centerQuadEndAdjustment;
+        float distance = HypotenuseDist(vertDist, horDist);
+
+        //create paths
+        //vertical path; if vertDist negative -> path up, if vertDist positive -> path down, if vertDist = 0 -> no vertical path
+        if (vertDist < 0)
+        {
+            //convert to absolute value
+            int absVertDist = -vertDist;
+            for (int i = 0, d = centerQuadSt; i <= absVertDist; i ++, d += squareSize)
+            {
+                TileType(d, 1, 0, uv, dunDict);
+            }
+
+            //horizontal path; if horDist negative -> path right, if horDist positive -> path left, if horDist = 0 -> no horizontal path
+            if (horDist < 0)
+            {
+                //convert to absolute value
+               
+                for (int i = (centerQuadSt + (squareSize * absVertDist)); i <= centerQuadEnd; i++)
+                {
+                    TileType(i, 1, 0, uv, dunDict);
+                }
+            }
+            else if (horDist > 0)
+            {
+                for (int i = (centerQuadSt + (squareSize * absVertDist)); i >= centerQuadEnd; i--)
+                {
+                    TileType(i, 1, 0, uv, dunDict);
+                }
+            }
+
+        }
+        else if (vertDist >= 0)
+        {
+            for (int i = centerQuadSt; i >= centerQuadSt - (vertDist * squareSize); i -= squareSize)
+            {
+                TileType(i, 1, 0, uv, dunDict);
+            }
+
+            //horizontal path; if horDist negative -> path right, if horDist positive -> path left, if horDist = 0 -> no horizontal path
+            if (horDist < 0)
+            {
+                //convert to absolute value
+                int absHorDist = -horDist;
+                for (int i = (centerQuadSt - (squareSize * vertDist)); i <= centerQuadEnd; i++)
+                {
+                    TileType(i, 1, 0, uv, dunDict);
+                }
+            }
+            else if (horDist > 0)
+            {
+                for (int i = (centerQuadSt - (squareSize * vertDist)); i >= centerQuadEnd; i--)
+                {
+                    TileType(i, 1, 0, uv, dunDict);
+                }
+            }
+        }
     }
 
 
@@ -539,31 +685,93 @@ public class DungeonHelperScript : MonoBehaviour {
         }
     }
 
-    /*public void RoomsConnected(int index, int roomCount, int squareSize, List<List<int>> roomList, Dictionary<int, string> dunDict)
+    public void PlaceObjects(int quadCount, int squareSize, Vector2[] uv, Dictionary<int, string> dunDict, GameObject ladderObject)
     {
-        int centerQuad = roomList[index][0];
-        int roomXSize = roomList[index][1];
-        int roomYSize = roomList[index][2];
-
-        int xfactor = roomXSize / 2;
-        int yPrefactor = roomYSize / 2;
-        int yfactor = yPrefactor * squareSize;
-        int lowBound = (centerQuad - xfactor) - yfactor;
-        string value = "";    
-
-        //iterate across floor tile edges
-        //BOTTOM edge
-        for (int i = (lowBound - squareSize); i < ((lowBound - squareSize) + roomXSize); i++)
+        string value = "";
+        bool isSet = false;
+   
+        //iterate through tiles to find appropriate spot
+        while (!isSet)
         {
-            //if floor, this is path, follow it
-            if (dunDict[i] == "floor")
+            int surroundingFloorTiles = 0;
+            int chosenQuad = Random.Range(0, quadCount);
+            if (dunDict.TryGetValue(chosenQuad, out value))
             {
+                //if i is floor tile, check 4 adjacent tile types, for each floor, surroundingFloorTiles +1
+                if (value == "floor")
+                {
+                    //check down
+                    if (dunDict.TryGetValue(chosenQuad - squareSize, out value))
+                    {
+                        if (value == "floor")
+                        {
+                            surroundingFloorTiles++;
+                        }
+                    }
+                    //check left
+                    if (dunDict.TryGetValue(chosenQuad - 1, out value))
+                    {
+                        if (value == "floor")
+                        {
+                            surroundingFloorTiles++;
+                        }
+                    }
+                    //check up
+                    if (dunDict.TryGetValue(chosenQuad + squareSize, out value))
+                    {
+                        if (value == "floor")
+                        {
+                            surroundingFloorTiles++;
+                        }
+                    }
+                    //check right
+                    if (dunDict.TryGetValue(chosenQuad + 1, out value))
+                    {
+                        if (value == "floor")
+                        {
+                            surroundingFloorTiles++;
+                        }
+                    }
+                }
+                if (surroundingFloorTiles >= 3)
+                {
+                    //instantiate ladder
+                    float xPos = 0;
+                    float yPos = 0;
 
+                    //get x position
+                    int last2CQ = chosenQuad % 100;
+                    if (last2CQ > 50 && last2CQ < 99)
+                    {
+                        xPos = last2CQ - squareSize;
+                    }
+                    else
+                    {
+                        xPos = last2CQ;
+                    }
+                    xPos = xPos + 24;
+
+
+                    //get y position
+                    float cQFloat = (float)chosenQuad;
+                    yPos = Mathf.Round(cQFloat / squareSize);
+                    Debug.Log("yPos: " + yPos);
+                    if ((last2CQ > 25 && last2CQ < 50) || (last2CQ >= 75))
+                    {
+                        yPos -= 1;
+                    }
+                    Debug.Log("yPos: " + yPos);
+                    yPos = yPos + 21.5f;
+                   // yPos++;
+
+                    Debug.Log("chosen quad " + chosenQuad);
+                    Instantiate(ladderObject, new Vector3(xPos, yPos, -4), Quaternion.identity);
+                    //exit loop
+                    isSet = true;
+                }
             }
         }
-
-    }*/
-
+    }
 
 
     public void TileType(int uvCoord, int randChance, int floorChance, Vector2[] uv, Dictionary<int, string> dunDict)

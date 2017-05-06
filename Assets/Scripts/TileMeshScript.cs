@@ -33,15 +33,35 @@ public class TileMeshScript : MonoBehaviour
     private int tileLeft;
     private int tileRight;
 
+    public GameObject dungeonObject;
+
+    //for singleton; ensure only 1 GameManager object
+    private static TileMeshScript _instance = null;
+
 
     Dictionary<int, string> gridDict = new Dictionary<int, string>();
 
     TileMeshHelperFunctions helperScript = new TileMeshHelperFunctions();
 
+
     private void Awake()
     {
+        //Check if instance already exists
+        if (_instance == null)
+
+            //if not, set instance to this
+            _instance = this;
+
+        //If instance already exists and it's not this:
+        else if (_instance != this)
+
+            //Then destroy this. This enforces our singleton pattern, meaning there can only ever be one instance of a GameManager.
+            Destroy(gameObject);
+
         squareSize = MenuScript.mapSize;
         mapType = MenuScript.mapType;
+
+        DontDestroyOnLoad(this);
     }
 
     private void Start()
@@ -122,7 +142,7 @@ public class TileMeshScript : MonoBehaviour
             helperScript.SetTileTypeRW(quadCount, squareSize, uv, gridDict);
         }
         
-        if (mapType != 3)
+        if (mapType != 3 && mapType != 1)
         {
             //Assign UVs in random order
             for (int i = 0; i < quadCount; i++)
@@ -170,6 +190,9 @@ public class TileMeshScript : MonoBehaviour
             Generate2();
             Generate2();
         }
+
+        //place dungeon at random tile
+        helperScript.PlaceObjects(quadCount, gridDict, squareSize, dungeonObject);
     }
 
 
@@ -222,20 +245,6 @@ public class TileMeshScript : MonoBehaviour
             }
             mesh.uv = uv;
         }
-
-
-
-        /*private void OnDrawGizmos()
-        {
-            if (vertices == null)
-            {
-                return;
-            }
-            Gizmos.color = Color.black;
-            for (int i = 0; i < vertices.Length; i++)
-            {
-                Gizmos.DrawSphere(vertices[i], 0.1f);
-            }*/
 
     }
 
