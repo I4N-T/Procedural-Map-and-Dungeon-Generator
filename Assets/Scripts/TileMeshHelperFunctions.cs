@@ -5,7 +5,7 @@ using System.Collections.Generic;
 
 
 
-public class TileMeshHelperFunctions {
+public class TileMeshHelperFunctions : MonoBehaviour {
 
 	/*public void AssignVertsAndTris(int xVerts, int xSize, int ySize, int quadCount, int verticesCount, Vector3[] vertices, Vector2[] uv, Mesh mesh)
     {
@@ -869,6 +869,94 @@ public class TileMeshHelperFunctions {
                 TileType(i, 0, 1, uv, gridDict);
             } 
         }
+    }
+
+    public void PlaceObjects(int quadCount, Dictionary<int, string> gridDict, int squareSize, GameObject dungeonObject)
+    {
+        string value = "";
+        //place dungeon
+        //select random location
+        int randomTile = Random.Range(0, quadCount);
+
+        //ensure that randomTile is grass
+        if (gridDict.TryGetValue(randomTile, out value))
+        {
+            while (value != "grass")
+            {
+                randomTile = Random.Range(0, quadCount);
+                gridDict.TryGetValue(randomTile, out value);
+            }
+        }
+
+        //instantiate dungeon
+        float xPos = 0;
+        float yPos = 0;
+        int last2CQ = 0;
+        float cQFloat = (float)randomTile;
+        float height = Mathf.Floor(cQFloat / squareSize);
+
+        if (randomTile < squareSize)
+        {
+            height = 0;
+        }
+        
+
+        if (squareSize <= 10)
+        {
+            last2CQ = randomTile % 10;
+        }
+        else if (squareSize > 10)
+        {
+            last2CQ = randomTile % 100;
+        }
+
+        //get y position
+        if (squareSize <= 10)
+        {
+            yPos = height;
+            Debug.Log("yPos: " + yPos);
+            /*if ((last2CQ >= (squareSize/2) && last2CQ < (squareSize)) || (last2CQ >= (squareSize * 1.5f)))
+            {
+                yPos -= 1;
+            }*/
+            yPos = yPos + 0.5f;
+        }
+        else if (squareSize > 10)
+        {
+            yPos = height;
+            Debug.Log("yPos: " + yPos);
+            /*if ((last2CQ >= (squareSize/2) && last2CQ < (squareSize)) || (last2CQ >= (squareSize * 1.5f)))
+            {
+                yPos -= 1;
+            }*/
+            yPos = yPos + 0.5f;
+        }
+        Debug.Log("yPos: " + yPos);
+
+        //get x position
+        if (squareSize <= 10)
+        {
+            xPos = randomTile - (squareSize * height);
+        }
+
+        else if (squareSize > 10)
+        {
+            if (last2CQ > squareSize && last2CQ < (squareSize * 2))
+            {
+                xPos = randomTile - (squareSize * height);
+                //xPos = last2CQ - squareSize;
+            }
+            else
+            {
+                xPos = randomTile - (squareSize * height);
+                //xPos = last2CQ;
+            }
+        }
+        xPos = xPos + 0.5f;
+        Debug.Log("xpos: " + xPos);
+
+        Debug.Log("chosen quad " + randomTile);
+        Instantiate(dungeonObject, new Vector3(xPos, yPos, -4), Quaternion.identity);
     }
 
     public void TileType(int uvCoord, int randChance, int grassChance, Vector2[] uv, Dictionary<int, string> gridDict)

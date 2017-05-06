@@ -5,15 +5,26 @@ public class CameraScriptDungeon : MonoBehaviour {
 
     GameObject theobj;
     DungeonTileScript tileMeshScript;
+    BoxCollider2D boxCollider;
+    
+
+    float colliderX;
+    float colliderY;
 
     void Awake()
     {
-        theobj = GameObject.Find("GameManager");
+        theobj = GameObject.Find("DungeonManager");
         tileMeshScript = theobj.GetComponent<DungeonTileScript>();
+
+        //box collider
+        boxCollider = this.GetComponent<BoxCollider2D>();
+        colliderX = 13.25f;
+        colliderY = 10f;
     }
 
     void Update()
     {
+        //zoom in/out AND change box collider size AND canvas size to match camera view boundaries
         var d = Input.GetAxis("Mouse ScrollWheel");
 
         if (d > 0)
@@ -21,6 +32,9 @@ public class CameraScriptDungeon : MonoBehaviour {
             if (Camera.main.orthographicSize > 4f)
             {
                 Camera.main.orthographicSize -= 1f;
+                colliderX = Camera.main.orthographicSize * 2.65f;
+                colliderY = Camera.main.orthographicSize * 2f;
+                boxCollider.size = new Vector3(colliderX, colliderY, 0);
             }
         }
 
@@ -29,7 +43,28 @@ public class CameraScriptDungeon : MonoBehaviour {
             if (Camera.main.orthographicSize < (tileMeshScript.squareSize / 2))
             {
                 Camera.main.orthographicSize += 1f;
+                colliderX = Camera.main.orthographicSize * 2.65f;
+                colliderY = Camera.main.orthographicSize * 2f;
+                boxCollider.size = new Vector3(colliderX, colliderY, 0);
             }
+        }
+
+        //pan with WASD
+        if (Input.GetKey("a"))
+        {
+            Camera.main.transform.Translate(new Vector3(-0.15f, 0, 0));
+        }
+        if (Input.GetKey("w"))
+        {
+            Camera.main.transform.Translate(new Vector3(0, 0.15f, 0));
+        }
+        if (Input.GetKey("d"))
+        {
+            Camera.main.transform.Translate(new Vector3(0.15f, 0, 0));
+        }
+        if (Input.GetKey("s"))
+        {
+            Camera.main.transform.Translate(new Vector3(0, -0.15f, 0));
         }
     }
 }

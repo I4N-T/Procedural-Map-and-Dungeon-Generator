@@ -18,6 +18,7 @@ public class MenuScript : MonoBehaviour {
     void Start()
     {
         PopulateMenu();
+        mapType = 0;
     }
 
     //INPUT FIELD
@@ -45,7 +46,10 @@ public class MenuScript : MonoBehaviour {
 
     public void onGenerate()
     {
-        SceneManager.LoadScene(1);
+        if (mapSize > 5 && mapSize <= 100)
+        {
+            SceneManager.LoadScene(1);
+        }
     }
 	
 }

@@ -31,6 +31,8 @@ public class DungeonTileScript : MonoBehaviour {
     private int tileLeft;
     private int tileRight;
 
+    public GameObject ladderObject;
+
 
     //List<Rooms> roomList = new List<Rooms>();
 
@@ -146,7 +148,7 @@ public class DungeonTileScript : MonoBehaviour {
 
         }
 
-            //method 1
+        //method 1
         /*//create path
         for (int i = 0; i < roomCount; i++)
         {
@@ -167,17 +169,48 @@ public class DungeonTileScript : MonoBehaviour {
         }
 
         helperScript.WallsForPaths(quadCount, squareSize, uv, dunDict);*/
-        mesh.uv = uv;
+
 
         //method 2
-        //for each room, determine which room is closest
-        //if the closest room has a path already, move to next closest
-        //when next closest room has no path, create path and add to isConnectedDict dictionary
-        for (int i = 0; i < roomCount; i++)
+        //start at room 0, then create path to closest room
+        //then create path from that room to the next closest room that isn't the room that just pathed into it
+        //continue til all rooms are connected
+        
+        List<int> ConnectedRooms = new List<int>();
+        for (int i = 0, index = 0; i < (roomCount-1); i++)
         {
-            int nearest = helperScript.ClosestRoom(roomList, i, squareSize);
-            Debug.Log("nearest room to room " + i + " is room " + nearest);
+            //here, i is the index of room to start path and nearest is index of room to receive path
+            
+            int nearest = helperScript.ClosestRoom(roomList, index, squareSize, ConnectedRooms);
+            Debug.Log("creating connection from room " + index + " to room " + nearest);
+
+            helperScript.CreatePathAlt(roomList, index, nearest, squareSize, uv, dunDict);
+            ConnectedRooms.Add(index);
+            ConnectedRooms.Add(nearest);
+            index = nearest;  
         }
+
+        //add one more path between two random rooms
+        int randomStart = Random.Range(0, roomCount);
+        int randomEnd = Random.Range(0, roomCount);
+        while (randomEnd == randomStart)
+        {
+            randomEnd = Random.Range(0, roomCount);
+        }
+        Debug.Log("creating RANDOM connection from room " + randomStart + " to room " + randomEnd);
+        helperScript.CreatePathAlt(roomList, randomStart, randomEnd, squareSize, uv, dunDict);
+
+        //build walls around paths
+        helperScript.WallsForPaths(quadCount, squareSize, uv, dunDict);
+
+        //clear ConnectedRooms list for next iteration
+        ConnectedRooms.Clear();
+
+        //apply the mesh uv
+        mesh.uv = uv;
+
+        //place objects (ladder and starting position)
+        helperScript.PlaceObjects(quadCount, squareSize, uv, dunDict, ladderObject);
     }
 
 
